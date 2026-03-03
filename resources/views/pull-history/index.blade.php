@@ -1,4 +1,4 @@
-﻿@extends('layouts.app', ['title' => 'Pull History'])
+@extends('layouts.app', ['title' => 'Pull History'])
 
 @section('content')
 <style>
@@ -257,7 +257,7 @@
                             $duration = ($startedAt && $completedAt) ? $startedAt->diffInSeconds($completedAt) : null;
                         @endphp
                         <tr>
-                            <td>atheletic:sync-appts</td>
+                            <td>athletic:sync-appts</td>
                             <td><span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span></td>
                             <td>scheduler</td>
                             <td>{{ $startedAt ? $startedAt->format('Y-m-d H:i:s') : '-' }}</td>

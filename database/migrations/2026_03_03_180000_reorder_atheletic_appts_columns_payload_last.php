@@ -125,8 +125,8 @@ return new class extends Migration
 
     private function resolveTable(): ?string
     {
-        if (Schema::hasTable('atheletic_appts')) {
-            return 'atheletic_appts';
+        if (Schema::hasTable('athletic_appts')) {
+            return 'athletic_appts';
         }
 
         if (Schema::hasTable('athelas_appts')) {

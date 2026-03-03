@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'Atheletic API' }}</title>
+    <title>{{ $title ?? 'Athletic API' }}</title>
     <style>
         :root {
             --bg: #eceef2;
@@ -341,7 +341,7 @@
 <header class="topbar">
     <div class="topbar-inner">
         <div class="brand-wrap">
-            <div class="brand">{{ config('app.name', 'Atheletic API') }}</div>
+            <div class="brand">{{ config('app.name', 'Athletic API') }}</div>
             <nav class="main-nav" aria-label="Primary">
                 <a href="{{ route('dashboard', ['endpoint' => $selectedEndpointKey]) }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
                 <a href="{{ $historyLink }}" class="{{ request()->routeIs('pull-history.*') ? 'active' : '' }}">Pull History</a>

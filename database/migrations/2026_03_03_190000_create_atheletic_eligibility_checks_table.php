@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('atheletic_eligibility_checks', function (Blueprint $table) {
+        Schema::create('athletic_eligibility_checks', function (Blueprint $table) {
             $table->id();
             $table->string('source_id', 191);
             $table->unsignedBigInteger('dump_id')->nullable();
@@ -74,6 +74,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('atheletic_eligibility_checks');
+        Schema::dropIfExists('athletic_eligibility_checks');
     }
 };

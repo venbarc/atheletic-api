@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('atheletic_prior_auths', function (Blueprint $table) {
+        Schema::create('athletic_prior_auths', function (Blueprint $table) {
             $table->id();
             $table->string('source_id', 191);
             $table->unsignedBigInteger('dump_id')->nullable();
@@ -73,6 +73,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('atheletic_prior_auths');
+        Schema::dropIfExists('athletic_prior_auths');
     }
 };

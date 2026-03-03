@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Atheletic\AtheleticApiClient;
+use App\Services\Athletic\AthleticApiClient;
 use Illuminate\Console\Command;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -15,21 +15,21 @@ use RuntimeException;
 use SplFileObject;
 use Throwable;
 
-class SyncAtheleticEligibilityChecks extends Command
+class SyncAthleticEligibilityChecks extends Command
 {
-    private const TABLE = 'atheletic_eligibility_checks';
+    private const TABLE = 'athletic_eligibility_checks';
 
     private const DUMP_TYPE = 'ELIGIBILITY_CHECKS';
 
-    protected $signature = 'atheletic:sync-eligibility-checks
+    protected $signature = 'athletic:sync-eligibility-checks
         {--dump-id=* : Process only specific dump IDs}
         {--reprocess : Process dumps even if already marked as processed}';
 
-    protected $description = 'Pull ELIGIBILITY_CHECKS dump files from Atheletic and upsert them locally in chunked batches.';
+    protected $description = 'Pull ELIGIBILITY_CHECKS dump files from Athletic and upsert them locally in chunked batches.';
 
     public function handle(): int
     {
-        $lock = Cache::lock('atheletic:sync-eligibility-checks', 3600);
+        $lock = Cache::lock('athletic:sync-eligibility-checks', 3600);
 
         if (! $lock->get()) {
             $this->warn('Sync already running. Skipping this run.');
@@ -42,7 +42,7 @@ class SyncAtheleticEligibilityChecks extends Command
             $this->info("Starting ELIGIBILITY_CHECKS sync (automatic chunk size: {$chunkSize}).");
 
             try {
-                $client = AtheleticApiClient::fromConfig();
+                $client = AthleticApiClient::fromConfig();
                 $dumps = $client->getDataDumpsList(self::DUMP_TYPE);
             } catch (Throwable $e) {
                 $this->error('Failed to load ELIGIBILITY_CHECKS dump list: '.$e->getMessage());
@@ -131,7 +131,7 @@ class SyncAtheleticEligibilityChecks extends Command
 
     private function resolveChunkSize(): int
     {
-        $configured = (int) config('services.atheletic.eligibility_checks_chunk_size', 200);
+        $configured = (int) config('services.athletic.eligibility_checks_chunk_size', 200);
 
         if ($configured <= 0) {
             throw new RuntimeException('Chunk size must be greater than zero.');
@@ -143,14 +143,14 @@ class SyncAtheleticEligibilityChecks extends Command
     /**
      * @param  array<string, mixed>  $dump
      */
-    private function processDump(AtheleticApiClient $client, array $dump, int $chunkSize): int
+    private function processDump(AthleticApiClient $client, array $dump, int $chunkSize): int
     {
         $dumpId = (int) data_get($dump, 'id', 0);
         $dumpFilePath = data_get($dump, 'file_path');
 
         $this->markDumpProcessing($dump);
 
-        $workingDir = storage_path('app/private/atheletic/eligibility_checks');
+        $workingDir = storage_path('app/private/athletic/eligibility_checks');
         File::ensureDirectoryExists($workingDir);
 
         $csvPath = "{$workingDir}/dump-{$dumpId}.csv";
@@ -537,7 +537,7 @@ class SyncAtheleticEligibilityChecks extends Command
         $now = now()->format('Y-m-d H:i:s');
         $dumpId = (int) data_get($dump, 'id', 0);
 
-        DB::table('atheletic_data_dumps')->upsert(
+        DB::table('athletic_data_dumps')->upsert(
             [[
                 'dump_type' => self::DUMP_TYPE,
                 'dump_id' => $dumpId,
@@ -592,7 +592,7 @@ class SyncAtheleticEligibilityChecks extends Command
             return [];
         }
 
-        return DB::table('atheletic_data_dumps')
+        return DB::table('athletic_data_dumps')
             ->where('dump_type', self::DUMP_TYPE)
             ->whereNotNull('processed_at')
             ->pluck('dump_id')
@@ -602,7 +602,7 @@ class SyncAtheleticEligibilityChecks extends Command
 
     private function updateDumpProgress(int $dumpId, int $rowsUpserted): void
     {
-        DB::table('atheletic_data_dumps')
+        DB::table('athletic_data_dumps')
             ->where('dump_type', self::DUMP_TYPE)
             ->where('dump_id', $dumpId)
             ->update([

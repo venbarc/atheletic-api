@@ -529,17 +529,17 @@ class PullHistoryController extends Controller
             'APPTS' => [
                 'label' => 'Available Blocks',
                 'group' => 'Appointment APIs',
-                'tables' => ['atheletic_appts', 'athelas_appts'],
+                'tables' => ['athletic_appts', 'athelas_appts'],
             ],
             'ELIGIBILITY_CHECKS' => [
                 'label' => 'Eligibility Checks',
                 'group' => 'Eligibility APIs',
-                'tables' => ['atheletic_eligibility_checks', 'athelas_eligibility_checks'],
+                'tables' => ['athletic_eligibility_checks', 'athelas_eligibility_checks'],
             ],
             'PRIOR_AUTHS' => [
                 'label' => 'Prior Auths',
                 'group' => 'Prior Auth APIs',
-                'tables' => ['atheletic_prior_auths', 'athelas_prior_auths'],
+                'tables' => ['athletic_prior_auths', 'athelas_prior_auths'],
             ],
         ];
     }
@@ -754,15 +754,15 @@ class PullHistoryController extends Controller
 
     private function resolveDumpsTable(): string
     {
-        if (Schema::hasTable('atheletic_data_dumps')) {
-            return 'atheletic_data_dumps';
+        if (Schema::hasTable('athletic_data_dumps')) {
+            return 'athletic_data_dumps';
         }
 
         if (Schema::hasTable('athelas_data_dumps')) {
             return 'athelas_data_dumps';
         }
 
-        return 'atheletic_data_dumps';
+        return 'athletic_data_dumps';
     }
 
     private function hasFixedHeaders(string $endpointKey): bool
