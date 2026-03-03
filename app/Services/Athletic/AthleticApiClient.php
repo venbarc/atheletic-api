@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Atheletic;
+namespace App\Services\Athletic;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
-class AtheleticApiClient
+class AthleticApiClient
 {
     private ?string $token = null;
 
@@ -25,11 +25,11 @@ class AtheleticApiClient
     public static function fromConfig(): self
     {
         return new self(
-            rtrim((string) config('services.atheletic.base_url'), '/'),
-            (string) config('services.atheletic.username'),
-            (string) config('services.atheletic.password'),
-            (int) config('services.atheletic.timeout', 120),
-            (bool) config('services.atheletic.verify_ssl', true),
+            rtrim((string) config('services.athletic.base_url'), '/'),
+            (string) config('services.athletic.username'),
+            (string) config('services.athletic.password'),
+            (int) config('services.athletic.timeout', 120),
+            (bool) config('services.athletic.verify_ssl', true),
         );
     }
 
@@ -122,7 +122,7 @@ class AtheleticApiClient
         }
 
         if ($this->username === '' || $this->password === '') {
-            throw new RuntimeException('ATHELETIC_API_USERNAME and ATHELETIC_API_PASSWORD must be configured.');
+            throw new RuntimeException('ATHLETIC_API_USERNAME and ATHLETIC_API_PASSWORD must be configured.');
         }
 
         $response = $this->baseRequest()
@@ -132,7 +132,7 @@ class AtheleticApiClient
                 'password' => $this->password,
             ]);
 
-        $this->throwIfFailed($response, 'Unable to authenticate with Atheletic API.');
+        $this->throwIfFailed($response, 'Unable to authenticate with Athletic API.');
 
         $payload = $response->json();
 

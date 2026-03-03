@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $tableName = Schema::hasTable('atheletic_appts')
-            ? 'atheletic_appts'
+        $tableName = Schema::hasTable('athletic_appts')
+            ? 'athletic_appts'
             : (Schema::hasTable('athelas_appts') ? 'athelas_appts' : null);
 
         if ($tableName === null) {
@@ -38,8 +38,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $tableName = Schema::hasTable('atheletic_appts')
-            ? 'atheletic_appts'
+        $tableName = Schema::hasTable('athletic_appts')
+            ? 'athletic_appts'
             : (Schema::hasTable('athelas_appts') ? 'athelas_appts' : null);
 
         if ($tableName === null) {

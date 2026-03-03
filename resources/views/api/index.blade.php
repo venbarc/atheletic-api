@@ -4,7 +4,7 @@
 <div class="card">
     <div class="row">
         <div>
-            <h1 class="section-title">{{ $selectedEndpoint['label'] }} (Atheletic API)</h1>
+            <h1 class="section-title">{{ $selectedEndpoint['label'] }} (Athletic API)</h1>
             <p class="section-subtitle">Endpoint data viewer for available export endpoints.</p>
         </div>
     </div>

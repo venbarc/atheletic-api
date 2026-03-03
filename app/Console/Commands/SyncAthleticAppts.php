@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Atheletic\AtheleticApiClient;
+use App\Services\Athletic\AthleticApiClient;
 use Illuminate\Console\Command;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -15,21 +15,19 @@ use RuntimeException;
 use SplFileObject;
 use Throwable;
 
-class SyncAtheleticPriorAuths extends Command
+class SyncAthleticAppts extends Command
 {
-    private const TABLE = 'atheletic_prior_auths';
+    private const APPTS_TABLE = 'athletic_appts';
 
-    private const DUMP_TYPE = 'PRIOR_AUTHS';
-
-    protected $signature = 'atheletic:sync-prior-auths
+    protected $signature = 'athletic:sync-appts
         {--dump-id=* : Process only specific dump IDs}
         {--reprocess : Process dumps even if already marked as processed}';
 
-    protected $description = 'Pull PRIOR_AUTHS dump files from Atheletic and upsert them locally in chunked batches.';
+    protected $description = 'Pull APPTS dump files from Athletic and upsert them locally in chunked batches.';
 
     public function handle(): int
     {
-        $lock = Cache::lock('atheletic:sync-prior-auths', 3600);
+        $lock = Cache::lock('athletic:sync-appts', 3600);
 
         if (! $lock->get()) {
             $this->warn('Sync already running. Skipping this run.');
@@ -39,19 +37,19 @@ class SyncAtheleticPriorAuths extends Command
 
         try {
             $chunkSize = $this->resolveChunkSize();
-            $this->info("Starting PRIOR_AUTHS sync (automatic chunk size: {$chunkSize}).");
+            $this->info("Starting APPTS sync (automatic chunk size: {$chunkSize}).");
 
             try {
-                $client = AtheleticApiClient::fromConfig();
-                $dumps = $client->getDataDumpsList(self::DUMP_TYPE);
+                $client = AthleticApiClient::fromConfig();
+                $dumps = $client->getDataDumpsList('APPTS');
             } catch (Throwable $e) {
-                $this->error('Failed to load PRIOR_AUTHS dump list: '.$e->getMessage());
+                $this->error('Failed to load APPTS dump list: '.$e->getMessage());
 
                 return self::FAILURE;
             }
 
             if ($dumps === []) {
-                $this->info('No PRIOR_AUTHS dumps returned by upstream.');
+                $this->info('No APPTS dumps returned by upstream.');
 
                 return self::SUCCESS;
             }
@@ -121,7 +119,7 @@ class SyncAtheleticPriorAuths extends Command
                 }
             }
 
-            $this->info("PRIOR_AUTHS sync done. Dumps processed: {$processedDumps}. Rows upserted: {$totalRows}.");
+            $this->info("APPTS sync done. Dumps processed: {$processedDumps}. Rows upserted: {$totalRows}.");
 
             return self::SUCCESS;
         } finally {
@@ -131,26 +129,27 @@ class SyncAtheleticPriorAuths extends Command
 
     private function resolveChunkSize(): int
     {
-        $configured = (int) config('services.atheletic.prior_auths_chunk_size', 200);
+        $configured = (int) config('services.athletic.appts_chunk_size', 200);
 
         if ($configured <= 0) {
             throw new RuntimeException('Chunk size must be greater than zero.');
         }
 
+        // Hard cap avoids OOM when rows include large JSON payloads.
         return min(max($configured, 50), 500);
     }
 
     /**
      * @param  array<string, mixed>  $dump
      */
-    private function processDump(AtheleticApiClient $client, array $dump, int $chunkSize): int
+    private function processDump(AthleticApiClient $client, array $dump, int $chunkSize): int
     {
         $dumpId = (int) data_get($dump, 'id', 0);
         $dumpFilePath = data_get($dump, 'file_path');
 
         $this->markDumpProcessing($dump);
 
-        $workingDir = storage_path('app/private/atheletic/prior_auths');
+        $workingDir = storage_path('app/private/athletic/appts');
         File::ensureDirectoryExists($workingDir);
 
         $csvPath = "{$workingDir}/dump-{$dumpId}.csv";
@@ -167,7 +166,7 @@ class SyncAtheleticPriorAuths extends Command
         }
 
         $payloadColumnMap = $this->resolvePayloadColumnMap($headers);
-        $this->ensureColumnsExist(array_values($payloadColumnMap));
+        $this->ensureApptsColumnsExist(array_values($payloadColumnMap));
 
         $fromDatetime = $this->parseNullableDatetime(data_get($dump, 'from_datetime'));
         $toDatetime = $this->parseNullableDatetime(data_get($dump, 'to_datetime'));
@@ -181,7 +180,7 @@ class SyncAtheleticPriorAuths extends Command
                 $payload = json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
                 if ($payload === false) {
-                    throw new RuntimeException("Unable to encode PRIOR_AUTHS row from dump {$dumpId} as JSON.");
+                    throw new RuntimeException("Unable to encode APPTS row from dump {$dumpId} as JSON.");
                 }
 
                 $payloadColumnsData = [];
@@ -196,6 +195,7 @@ class SyncAtheleticPriorAuths extends Command
                     'from_datetime' => $fromDatetime,
                     'to_datetime' => $toDatetime,
                     'source_updated_at' => $this->extractSourceUpdatedAt($row),
+                    'appointment_status' => $this->extractAppointmentStatus($row),
                     'payload' => $payload,
                     'created_at' => $now,
                     'updated_at' => $now,
@@ -367,10 +367,10 @@ class SyncAtheleticPriorAuths extends Command
         return substr($column, 0, 55).'_'.$hash;
     }
 
-    /**
+        /**
      * @param array<int, string> $columnNames
      */
-    private function ensureColumnsExist(array $columnNames): void
+    private function ensureApptsColumnsExist(array $columnNames): void
     {
         $columnNames = array_values(array_unique(array_filter($columnNames, fn (mixed $name): bool => is_string($name) && $name !== '')));
 
@@ -378,12 +378,12 @@ class SyncAtheleticPriorAuths extends Command
             return;
         }
 
-        $tableName = Schema::hasTable(self::TABLE)
-            ? self::TABLE
-            : (Schema::hasTable('athelas_prior_auths') ? 'athelas_prior_auths' : null);
+        $tableName = Schema::hasTable(self::APPTS_TABLE)
+            ? self::APPTS_TABLE
+            : (Schema::hasTable('athelas_appts') ? 'athelas_appts' : null);
 
         if ($tableName === null) {
-            throw new RuntimeException('PRIOR_AUTHS table does not exist. Run migrations first.');
+            throw new RuntimeException('APPTS table does not exist. Run migrations first.');
         }
 
         $existing = array_flip(Schema::getColumnListing($tableName));
@@ -393,9 +393,9 @@ class SyncAtheleticPriorAuths extends Command
             return;
         }
 
-        $anchorColumn = Schema::hasColumn($tableName, 'prior_auth_tracking_type')
-            ? 'prior_auth_tracking_type'
-            : (Schema::hasColumn($tableName, 'updated_at') ? 'updated_at' : 'source_updated_at');
+        $anchorColumn = Schema::hasColumn($tableName, 'appointments_updated_at')
+            ? 'appointments_updated_at'
+            : (Schema::hasColumn($tableName, 'updated_at') ? 'updated_at' : 'appointment_status');
 
         Schema::table($tableName, function (Blueprint $table) use ($missing, &$anchorColumn): void {
             foreach ($missing as $column) {
@@ -409,13 +409,12 @@ class SyncAtheleticPriorAuths extends Command
             }
         });
     }
-
     /**
      * @param  array<string, string|null>  $row
      */
     private function resolveSourceId(array $row): string
     {
-        foreach (['id', 'prior_auth_id', 'external_id'] as $candidate) {
+        foreach (['id', 'appointment_id', 'appt_id', 'external_id'] as $candidate) {
             $value = $row[$candidate] ?? null;
 
             if (is_string($value) && $value !== '') {
@@ -437,7 +436,7 @@ class SyncAtheleticPriorAuths extends Command
      */
     private function extractSourceUpdatedAt(array $row): ?string
     {
-        foreach (['prior_auths_updated_at', 'updated_at', 'created_at'] as $candidate) {
+        foreach (['appointment_updated_at', 'updated_at', 'last_modified', 'created_at'] as $candidate) {
             $value = $row[$candidate] ?? null;
 
             if (! is_string($value) || $value === '') {
@@ -449,6 +448,24 @@ class SyncAtheleticPriorAuths extends Command
             if ($parsed !== null) {
                 return $parsed;
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, string|null>  $row
+     */
+    private function extractAppointmentStatus(array $row): ?string
+    {
+        foreach (['appointment_status', 'status', 'schedule_status'] as $candidate) {
+            $value = $row[$candidate] ?? null;
+
+            if (! is_string($value) || $value === '') {
+                continue;
+            }
+
+            return Str::limit($value, 191, '');
         }
 
         return null;
@@ -471,18 +488,19 @@ class SyncAtheleticPriorAuths extends Command
      * @param  array<int, array<string, mixed>>  $rows
      * @param  array<int, string>  $payloadColumns
      */
-    private function upsertBatch(array $rows, array $payloadColumns): void
+    private function upsertApptsBatch(array $rows, array $payloadColumns): void
     {
         $updateColumns = array_values(array_unique(array_merge([
             'dump_id',
             'from_datetime',
             'to_datetime',
             'source_updated_at',
+            'appointment_status',
             'payload',
             'updated_at',
         ], $payloadColumns)));
 
-        DB::table(self::TABLE)->upsert(
+        DB::table(self::APPTS_TABLE)->upsert(
             $rows,
             ['source_id'],
             $updateColumns
@@ -530,16 +548,21 @@ class SyncAtheleticPriorAuths extends Command
 
     /**
      * @param  array<string, mixed>  $dump
-     * @param  array{status: string, processed_at: string|null, rows_upserted: int, last_error: string|null}  $state
+     * @param  array{
+     *     status: string,
+     *     processed_at: string|null,
+     *     rows_upserted: int,
+     *     last_error: string|null
+     * }  $state
      */
     private function upsertDumpState(array $dump, array $state): void
     {
         $now = now()->format('Y-m-d H:i:s');
         $dumpId = (int) data_get($dump, 'id', 0);
 
-        DB::table('atheletic_data_dumps')->upsert(
+        DB::table('athletic_data_dumps')->upsert(
             [[
-                'dump_type' => self::DUMP_TYPE,
+                'dump_type' => 'APPTS',
                 'dump_id' => $dumpId,
                 'table_type' => data_get($dump, 'table_type'),
                 'file_path' => data_get($dump, 'file_path'),
@@ -574,7 +597,7 @@ class SyncAtheleticPriorAuths extends Command
     private function flushBatch(int $dumpId, array &$batch, int $rowsUpserted, array $payloadColumns): int
     {
         $batchCount = count($batch);
-        $this->upsertBatch($batch, $payloadColumns);
+        $this->upsertApptsBatch($batch, $payloadColumns);
         $batch = [];
 
         $rowsUpserted += $batchCount;
@@ -592,8 +615,8 @@ class SyncAtheleticPriorAuths extends Command
             return [];
         }
 
-        return DB::table('atheletic_data_dumps')
-            ->where('dump_type', self::DUMP_TYPE)
+        return DB::table('athletic_data_dumps')
+            ->where('dump_type', 'APPTS')
             ->whereNotNull('processed_at')
             ->pluck('dump_id')
             ->mapWithKeys(fn (mixed $id): array => [(int) $id => true])
@@ -602,8 +625,8 @@ class SyncAtheleticPriorAuths extends Command
 
     private function updateDumpProgress(int $dumpId, int $rowsUpserted): void
     {
-        DB::table('atheletic_data_dumps')
-            ->where('dump_type', self::DUMP_TYPE)
+        DB::table('athletic_data_dumps')
+            ->where('dump_type', 'APPTS')
             ->where('dump_id', $dumpId)
             ->update([
                 'status' => 'processing',

@@ -4,7 +4,7 @@
 <div class="card">
     <div class="row">
         <div>
-            <h1 class="section-title">Provider Revenue (Atheletic API)</h1>
+            <h1 class="section-title">Provider Revenue (Athletic API)</h1>
             <p class="section-subtitle">Switch between overview metrics and endpoint tables in one dashboard screen.</p>
         </div>
     </div>
